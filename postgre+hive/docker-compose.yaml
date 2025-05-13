@@ -1,0 +1,93 @@
+version: '3.8'
+
+services:
+  hive-metastore-postgres:
+    image: postgres:13
+    container_name: hive-metastore-postgres
+    environment:
+      POSTGRES_DB: metastore
+      POSTGRES_USER: hive
+      POSTGRES_PASSWORD: hive
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - hive-net
+
+  namenode:
+    image: bde2020/hadoop-namenode:2.0.0-hadoop3.2.1-java8
+    container_name: hadoop-namenode
+    hostname: namenode
+    environment:
+      - CLUSTER_NAME=test
+    ports:
+      - "9870:9870"
+      - "8020:8020"
+    volumes:
+      - namenode-data:/hadoop/dfs/name
+    networks:
+      - hive-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9870"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+
+  datanode:
+    image: bde2020/hadoop-datanode:2.0.0-hadoop3.2.1-java8
+    container_name: hadoop-datanode
+    environment:
+      - CORE_CONF_fs_defaultFS=hdfs://namenode:8020
+    ports:
+      - "9864:9864"
+    volumes:
+      - datanode-data:/hadoop/dfs/data
+    depends_on:
+      - namenode
+    networks:
+      - hive-net
+
+  hive-metastore:
+    image: bde2020/hive:2.3.2-postgresql-metastore
+    container_name: hive-metastore
+    environment:
+      - HIVE_METASTORE_DB_TYPE=postgres
+      - HIVE_METASTORE_DB_HOST=hive-metastore-postgres
+      - HIVE_METASTORE_DB_NAME=metastore
+      - HIVE_METASTORE_DB_USER=hive
+      - HIVE_METASTORE_DB_PASS=hive
+      - SERVICE_PRECONDITION=hive-metastore-postgres:5432 namenode:8020
+      - CORE_CONF_fs_defaultFS=hdfs://namenode:8020
+    ports:
+      - "9083:9083"
+    depends_on:
+      - hive-metastore-postgres
+      - namenode
+      - datanode
+    networks:
+      - hive-net
+
+  hive-server:
+    image: bde2020/hive:2.3.2-postgresql-metastore
+    container_name: hive-server
+    environment:
+      - HIVE_METASTORE_URI=thrift://hive-metastore:9083
+      - CORE_CONF_fs_defaultFS=hdfs://namenode:8020
+      - SERVICE_PRECONDITION=hive-metastore:9083 namenode:8020
+    ports:
+      - "10000:10000"
+    depends_on:
+      - hive-metastore
+    networks:
+      - hive-net
+
+networks:
+  hive-net:
+    driver: bridge
+
+volumes:
+  namenode-data:
+  datanode-data:
+  postgres-data:
