@@ -1,8 +1,3 @@
-Here is a complete and polished `README.md` for your Hive and Hadoop Docker Compose setup:
-
----
-
-````markdown
 # 🐝 Apache Hive on Hadoop with Docker Compose
 
 This project sets up an Apache Hive environment with a PostgreSQL Metastore, running on a Hadoop HDFS cluster using Docker Compose. It includes the following components:
@@ -31,7 +26,7 @@ This project sets up an Apache Hive environment with a PostgreSQL Metastore, run
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/your-username/hive-hadoop-docker.git
+git clone https://github.com/marcus-exe/hive-hadoop-docker.git
 cd hive-hadoop-docker
 ````
 

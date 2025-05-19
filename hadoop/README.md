@@ -32,7 +32,7 @@ Each node uses the official [BDE2020 Hadoop Docker images](https://github.com/bi
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/your-username/hadoop-docker-cluster.git
+git clone https://github.com/marcus-exe/hadoop-docker-cluster.git
 cd hadoop-docker-cluster
 ```
 
