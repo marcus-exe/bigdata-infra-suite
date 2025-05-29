@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+      - name: backend
+        image: python:3.9-slim
+        command: ["python", "-m", "http.server", "80"]
+        workingDir: /app
+        ports:
+        - containerPort: 80
+        volumeMounts:
+        - name: backend-content
+          mountPath: /app
+      volumes:
+      - name: backend-content
+        configMap:
+          name: backend-config
