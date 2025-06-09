@@ -19,6 +19,8 @@ This repository documents my experiments and tests with a wide range of Big Data
 * **Cloudflare** – Edge networking and security (DNS, caching, etc.)
 * **Docker Compose** – Local container orchestration
 * **Kubernetes** – Scalable container orchestration for cloud-native deployments
+* **MinIO** – High-performance, S3-compatible object storage designed for large-scale data infrastructure and cloud-native environments  
+* **Kubernetes** – Scalable container orchestration for cloud-native deployments  
 
 ---
 
