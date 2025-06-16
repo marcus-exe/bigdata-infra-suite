@@ -1,6 +1,0 @@
-scripts/docker-service-logs.log
-k8-minio/data
-minIO+spark+iceberg/spark-home-master
-minIO+spark+iceberg/spark-home-worker
-apache-spark/jars
-iceberg-minio/jars
