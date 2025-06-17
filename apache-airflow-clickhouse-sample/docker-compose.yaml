@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  clickhouse_source:
+    image: clickhouse/clickhouse-server:latest
+    container_name: clickhouse_source
+    environment:
+      CLICKHOUSE_USER: airflow
+      CLICKHOUSE_PASSWORD: airflow_password
+      CLICKHOUSE_DB: db1
+    ports:
+      - "9001:9000"
+    volumes:
+      - clickhouse_source_data:/var/lib/clickhouse
+      - ./clickhouse_init/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD", "clickhouse-client", "--host", "localhost", "--query", "SELECT 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+
+  clickhouse_destination:
+    image: clickhouse/clickhouse-server:latest
+    container_name: clickhouse_destination
+    environment:
+      CLICKHOUSE_USER: airflow
+      CLICKHOUSE_PASSWORD: airflow_password
+      CLICKHOUSE_DB: db2
+    ports:
+      - "9002:9000"
+    volumes:
+      - clickhouse_destination_data:/var/lib/clickhouse
+
+  data_generator:
+    container_name: data_generator
+    build: ./data_generator
+    depends_on:
+      clickhouse_source:
+        condition: service_healthy 
+    environment:
+      CLICKHOUSE_HOST: clickhouse_source
+      CLICKHOUSE_PORT: 9000
+      CLICKHOUSE_DB: db1
+      CLICKHOUSE_USER: airflow
+      CLICKHOUSE_PASSWORD: airflow_password
+    restart: always
+
+volumes:
+  clickhouse_source_data:
+  clickhouse_destination_data:

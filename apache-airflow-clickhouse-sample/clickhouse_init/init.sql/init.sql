@@ -1,0 +1,5 @@
+CREATE DATABASE IF NOT EXISTS db1;
+
+CREATE USER IF NOT EXISTS airflow IDENTIFIED BY 'airflow_password';
+
+GRANT ALL ON db1.* TO airflow;
