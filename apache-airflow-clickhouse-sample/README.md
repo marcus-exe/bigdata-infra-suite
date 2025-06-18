@@ -34,11 +34,13 @@ The ultimate goal for this setup is to integrate with Apache Airflow to periodic
 ```
 .
 ├── data_generator/
-│   ├── app.py          # Python script to generate data and insert into ClickHouse
-│   └── Dockerfile      # Builds the Python data_generator image
-├── clickhouse_init/
-│   └── init.sql        # SQL script to initialize the source ClickHouse database (creates db1, user, and grants permissions)
-└── docker-compose.yaml # Defines all the services and their configurations
+│   ├── app.py             # Python script to generate data and insert into ClickHouse
+│   └── Dockerfile         # Builds the Python data_generator image
+├── clickhouse_init_dest/
+│   └── create_user.sh     # SQL script to initialize the source ClickHouse database (creates db1, user, and grants permissions)
+├── clickhouse_init_source/
+│   └── create_user.sh     # SQL script to initialize the source ClickHouse database (creates db2, user, and grants permissions)
+└── docker-compose.yaml    # Defines all the services and their configurations
 
 ```
 
@@ -155,16 +157,30 @@ clickhouse-client \
   --database db2
 ```
 
+Once connected, you can run queries like:
+
+```sql
+SHOW TABLES;
+SELECT count(*) FROM destination_table;
+SELECT * FROM destination_table ORDER BY timestamp DESC LIMIT 5;
+```
+
 -----
 
-## Next Steps (Airflow Integration)
+##  Airflow Integration (Complete)
+This repository now includes a fully functional Apache Airflow setup that orchestrates the data movement between your ClickHouse instances. The Airflow DAG, clickhouse_transfer_dag, performs the following operations hourly:
 
-This setup provides the foundational ClickHouse instances and a data source. The next phase involves integrating Apache Airflow to orchestrate the data movement. You would typically:
+1. `extract_from_db1`: Reads new data from `clickhouse_source.source_table`.
+2. `insert_into_db2`: Inserts the extracted data into `destination_table` in `clickhouse_destination.db2`.
+3. `delete_from_db1`: Deletes the successfully transferred data from `clickhouse_source.source_table`, ensuring data is processed only once and the source table is kept lean.
 
-1.  Set up your Apache Airflow environment (likely in a separate `docker-compose.yaml`).
-2.  Configure ClickHouse connections within Airflow.
-3.  Create a DAG (Directed Acyclic Graph) in Airflow to:
-      * Read data from `clickhouse_source.source_table`.
-      * Insert that data into a table in `clickhouse_destination.db2`.
-      * Delete the processed data from `clickhouse_source.source_table`.
-      * Schedule this DAG to run hourly.
+**How it Works**
+The Airflow DAG leverages the `clickhouse_driver` to establish connections and interact with both ClickHouse instances. The connection details, including the `airflow` user and `airflow_password`, are configured within the DAG for seamless operation. The DAG is scheduled to run every hour, automating the entire data transfer and cleanup process.
+
+**Accessing Airflow**
+Once all services are up, you can access the Airflow UIs:
+
+- Airflow Web UI: http://localhost:8080
+  - Default Credentials: admin / admin
+- Flower (Celery Monitor): http://localhost:5555
+The `dags/clickhouse_dag.py` file is automatically mounted into the Airflow webserver and worker containers, allowing Airflow to discover and schedule the data pipeline.

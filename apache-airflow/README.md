@@ -29,23 +29,16 @@ This project sets up a **production-like Apache Airflow environment using Docker
 
 ## ✅ How to Run It
 
-1. **Initialize Airflow Metadata Database:**
-
-```bash
-docker-compose up airflow-init
-````
-
----
-
-2. **Start All Airflow Services:**
+1. **Start All Airflow Services:**
 
 ```bash
 docker-compose up
 ```
+_note: This will initialize Airflow Metadata Database_
 
 ---
 
-3. **Access Airflow UI:**
+2. **Access Airflow UI:**
 
 * Web UI: [http://localhost:8080](http://localhost:8080)
 * Flower UI: [http://localhost:5555](http://localhost:5555)
