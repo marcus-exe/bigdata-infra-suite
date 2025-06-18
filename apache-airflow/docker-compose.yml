@@ -1,4 +1,4 @@
-version: '3'
+version: '3.8'
 
 x-airflow-common:
   &airflow-common
@@ -18,6 +18,9 @@ x-airflow-common:
     - ./logs:/opt/airflow/logs
     - ./plugins:/opt/airflow/plugins
   user: "${AIRFLOW_UID:-50000}:0"
+  networks:
+    - shared_data_pipeline_network
+    - default
 
 services:
   postgres:
@@ -28,9 +31,33 @@ services:
       POSTGRES_DB: airflow
     volumes:
       - postgres-db-volume:/var/lib/postgresql/data
-
+    networks:
+      - default
+    # --- ADDED HEALTHCHECK FOR POSTGRES ---
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s # Give it a little time to start listening
+    # -------------------------------------
   redis:
     image: redis:7
+    networks:
+      - default
+    healthcheck: # Good to add a healthcheck for redis too
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  airflow-init:
+    <<: *airflow-common
+    command: bash -c "airflow db migrate && airflow users create --username admin --password admin --role Admin --email admin@example.com --firstname Admin --lastname User || true"
+    restart: on-failure
+    depends_on:
+      postgres:
+        condition: service_healthy
 
   airflow-webserver:
     <<: *airflow-common
@@ -42,25 +69,51 @@ services:
       interval: 10s
       retries: 5
       start_period: 30s
+    depends_on:
+      airflow-init:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
 
   airflow-scheduler:
     <<: *airflow-common
     command: scheduler
+    depends_on:
+      airflow-init:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
 
   airflow-worker:
     <<: *airflow-common
     command: celery worker
+    depends_on:
+      airflow-init:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
 
   airflow-flower:
     <<: *airflow-common
     command: celery flower
     ports:
       - "5555:5555"
-
-  airflow-init:
-    <<: *airflow-common
-    command: bash -c "airflow db migrate && airflow users create --username admin --password admin --role Admin --email admin@example.com --firstname Admin --lastname User || true"
-    restart: on-failure
+    depends_on:
+      redis:
+        condition: service_healthy
 
 volumes:
   postgres-db-volume:
+
+networks:
+  shared_data_pipeline_network:
+    external: true
+  default:
+    driver: bridge

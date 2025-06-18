@@ -5,32 +5,38 @@ services:
     image: clickhouse/clickhouse-server:latest
     container_name: clickhouse_source
     environment:
-      CLICKHOUSE_USER: airflow
-      CLICKHOUSE_PASSWORD: airflow_password
       CLICKHOUSE_DB: db1
     ports:
       - "9001:9000"
     volumes:
       - clickhouse_source_data:/var/lib/clickhouse
-      - ./clickhouse_init/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./clickhouse_init_source/create_user.sh:/docker-entrypoint-initdb.d/create_user.sh
     healthcheck:
       test: ["CMD", "clickhouse-client", "--host", "localhost", "--query", "SELECT 1"]
       interval: 10s
       timeout: 5s
       retries: 15
+    networks:
+      - shared_data_pipeline_network
 
   clickhouse_destination:
     image: clickhouse/clickhouse-server:latest
     container_name: clickhouse_destination
     environment:
-      CLICKHOUSE_USER: airflow
-      CLICKHOUSE_PASSWORD: airflow_password
       CLICKHOUSE_DB: db2
     ports:
       - "9002:9000"
     volumes:
       - clickhouse_destination_data:/var/lib/clickhouse
-
+      - ./clickhouse_init_dest/create_user.sh:/docker-entrypoint-initdb.d/create_user.sh
+    healthcheck:
+      test: ["CMD", "clickhouse-client", "--host", "localhost", "--query", "SELECT 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+    networks:
+      - shared_data_pipeline_network
+    
   data_generator:
     container_name: data_generator
     build: ./data_generator
@@ -44,7 +50,13 @@ services:
       CLICKHOUSE_USER: airflow
       CLICKHOUSE_PASSWORD: airflow_password
     restart: always
+    networks:
+      - shared_data_pipeline_network
 
 volumes:
   clickhouse_source_data:
   clickhouse_destination_data:
+
+networks:
+  shared_data_pipeline_network:
+    external: true
