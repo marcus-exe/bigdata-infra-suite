@@ -42,8 +42,8 @@ def delete_data(**context):
     source_client = Client(
         host='clickhouse_source',
         port=9000,
-        user='default',
-        password='',
+        user='airflow',
+        password='airflow_password',
         database='db1'
     )
     delete_query = f"ALTER TABLE source_table DELETE WHERE id IN ({ids_csv})"
