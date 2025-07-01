@@ -1,0 +1,57 @@
+version: '3.8'
+
+services:
+  clickhouse:
+    image: clickhouse/clickhouse-server:latest
+    container_name: clickhouse
+    env_file:
+      - .env.development
+    ports:
+      - "8123:8123" # HTTP port
+      - "9000:9000" # Native client port
+      - "9440:9440" # Native client TLS port
+    volumes:
+      - clickhouse_data:/var/lib/clickhouse
+      - ./clickhouse_init/init.sh:/docker-entrypoint-initdb.d/init.sh
+    healthcheck:
+      test: ["CMD", "clickhouse-client", "--host", "localhost", "--query", "SELECT 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+    networks:
+      - clickhouse_network
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3000:3000"   # Grafana UI at localhost:3000
+    depends_on:
+      - clickhouse
+    env_file:
+      - .env.development
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning/datasources:/etc/grafana/provisioning/datasources
+    networks:
+      - clickhouse_network
+  
+  data_generator:
+    container_name: data_generator
+    build: ./data_generator
+    depends_on:
+      clickhouse:
+        condition: service_healthy 
+    env_file:
+      - ./data_generator/.env.development
+    restart: always
+    networks:
+      - clickhouse_network
+
+
+volumes:
+  clickhouse_data:
+  grafana_data:
+
+networks:
+  clickhouse_network:
